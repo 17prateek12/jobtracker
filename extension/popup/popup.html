@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Job Tracker</title>
+    <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h2>Job Tracker</h2>
+
+        <!-- JWT -->
+
+        <div class="section">
+            <label>JWT Token</label>
+
+            <input id="tokenInput" type="text" placeholder="Paste JWT Token" />
+
+            <button id="saveTokenBtn">
+                Save JWT
+            </button>
+        </div>
+
+        <hr />
+
+        <!-- Company -->
+
+        <div class="section">
+            <label>Company</label>
+            <input id="companyInput" placeholder="Company Name" />
+
+            <button id="selectCompanyBtn">
+                Select Company
+            </button>
+        </div>
+
+
+        <!-- Role Enum -->
+
+        <div class="section">
+            <label>Job Role</label>
+
+            <select id="roleSelect">
+                <option value="">
+                    Select Role
+                </option>
+            </select>
+        </div>
+
+        <!-- Level -->
+
+        <div class="section">
+            <label>Job Level</label>
+
+            <select id="jobLevelSelect">
+                <option value="">
+                    Select Level
+                </option>
+            </select>
+        </div>
+
+        <!-- Source -->
+
+        <div class="section">
+            <label>Source</label>
+
+            <select id="sourceSelect">
+                <option value="">
+                    Select Source
+                </option>
+            </select>
+        </div>
+
+        <!-- Status -->
+
+        <div class="section">
+            <label>Status</label>
+
+            <select id="statusSelect">
+                <option value="">
+                    Select Status
+                </option>
+            </select>
+        </div>
+
+        <!-- URL -->
+
+        <div class="section">
+            <label>URL</label>
+            <input id="urlInput" placeholder="Job URL" />
+
+            <button id="captureUrlBtn">
+                Use Current URL
+            </button>
+        </div>
+
+        <!-- Save -->
+
+        <div class="section">
+            <button id="saveJobBtn">
+                Save Job
+            </button>
+
+            <button id="clearBtn">
+                Clear
+            </button>
+        </div>
+
+        <hr />
+
+        <!-- Navigation -->
+
+        <div class="section">
+            <button id="viewCompaniesBtn">
+                View Companies
+            </button>
+        </div>
+
+    </div>
+
+    <script type="module" src="popup.js">
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,6 @@
+{
+  "watch": ["src", "index.ts"],
+  "ext": "ts",
+  "ignore": ["dist", "node_modules"],
+  "exec": "node --require ts-node/register index.ts"
+}
