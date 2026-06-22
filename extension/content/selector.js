@@ -2,6 +2,48 @@ console.log(
   "CONTENT SCRIPT LOADED"
 );
 
+// Automatically sync session token from Dashboard to Extension
+function syncDashboardToken() {
+  const isDashboardApp = 
+    window.location.origin === "http://localhost:5173" ||
+    document.title.includes("Job CRM") ||
+    document.querySelector('meta[name="application-name"]')?.getAttribute('content') === 'Job Tracker';
+
+  if (isDashboardApp) {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+
+    chrome.storage.local.get(["token", "user"], (stored) => {
+      if (token) {
+        if (stored.token !== token) {
+          let userObj = null;
+          try {
+            if (userStr) userObj = JSON.parse(userStr);
+          } catch (e) {
+            console.error("[Job Tracker] Failed to parse user details:", e);
+          }
+          chrome.storage.local.set({ token, user: userObj }, () => {
+            console.log("[Job Tracker] Session token synced from dashboard.");
+          });
+        }
+      } else {
+        // Dashboard logged out - clear storage if extension was connected
+        if (stored.token) {
+          chrome.storage.local.remove(["token", "user"], () => {
+            console.log("[Job Tracker] Cleared extension session since dashboard logged out.");
+          });
+        }
+      }
+    });
+  }
+}
+
+// Run immediately and subscribe to focus/click updates
+syncDashboardToken();
+window.addEventListener("focus", syncDashboardToken);
+window.addEventListener("click", syncDashboardToken);
+
+
 let activeField = null;
 
 function stopSelectionMode() {

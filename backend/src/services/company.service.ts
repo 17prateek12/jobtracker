@@ -87,7 +87,7 @@ export const getCompaniesService = async (userId: string, query: CompanyQueryDto
     if (search) {
         filter.name = {
             $regex: search,
-            $option: "i",
+            $options: "i",
         };
     }
 

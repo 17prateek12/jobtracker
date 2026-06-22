@@ -36,7 +36,7 @@ export const createOpportunityService = async (userId: string, payload: CreateOp
 export const getOpportunitiesService = async (userId: string, query: OpportunityQueryDto) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
-    const filter: any = { userId, };
+    const filter: any = { userId };
 
     if (query.status) {
         filter.status = query.status;
@@ -61,10 +61,27 @@ export const getOpportunitiesService = async (userId: string, query: Opportunity
         filter.jobLevel = query.jobLevel;
     }
 
+    // Applied date range filter
+    if (query.startDate || query.endDate) {
+        filter.appliedAt = {};
+        if (query.startDate) {
+            filter.appliedAt.$gte = new Date(query.startDate);
+        }
+        if (query.endDate) {
+            filter.appliedAt.$lte = new Date(query.endDate);
+        }
+    }
+
+    // Sorting
+    const sortField = query.sortBy || "createdAt";
+    const sortDir = query.sortOrder === "asc" ? 1 : -1;
+    const sortOptions: any = {};
+    sortOptions[sortField] = sortDir;
+
     const [items, total] = await Promise.all([
         Opportunity.find(filter)
             .populate("companyId", "name website linkedinUrl")
-            .sort({ createdAt: -1, })
+            .sort(sortOptions)
             .skip((page - 1) * limit)
             .limit(limit),
 

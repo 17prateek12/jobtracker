@@ -73,3 +73,34 @@ export const getOpportunity =
         request(
             `/opportunities/${opportunityId}`
         );        
+
+export async function getEnums() {
+    const { token } = await chrome.storage.local.get("token");
+    const response = await fetch(
+        `${API_BASE}/metadata/enums`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+    return response.json();
+}
+
+export async function getCurrentUser() {
+    const { token } = await chrome.storage.local.get("token");
+    const response = await fetch(
+        `${API_BASE}/auth/me`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+    return response.json();
+}
+

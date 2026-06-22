@@ -1,0 +1,336 @@
+/* popup.css */
+
+:root {
+    --bg-dark: #121318;
+    --bg-card: #1c1d24;
+    --border: #2e303a;
+    --text-muted: #9ca3af;
+    --text-light: #f3f4f6;
+    --accent: #c084fc;
+    --accent-hover: #a855f7;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.4);
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.1);
+    --success: #10b981;
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 360px;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+.container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Common helpers */
+.hidden {
+    display: none !important;
+}
+
+/* VIEW: UNAUTHENTICATED */
+.brand {
+    text-align: center;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+
+.brand-logo {
+    font-size: 40px;
+    display: inline-block;
+    margin-bottom: 8px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.brand h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-light);
+    letter-spacing: -0.5px;
+}
+
+.description {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+    padding: 0 10px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin: 16px 0;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border);
+}
+
+.divider span {
+    padding: 0 10px;
+}
+
+.manual-section {
+    text-align: center;
+}
+
+#manualTokenInputContainer {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* BUTTONS */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.btn-primary {
+    background-color: var(--accent);
+    color: #121318;
+    box-shadow: 0 4px 12px rgba(192, 132, 252, 0.25);
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text-light);
+}
+
+.btn-secondary:hover {
+    background-color: var(--border);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+}
+
+.btn-outline:hover {
+    border-color: var(--text-muted);
+    color: var(--text-light);
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12.5px;
+    padding: 4px;
+    width: auto;
+    text-decoration: underline;
+}
+
+.btn-link:hover {
+    color: var(--accent-hover);
+}
+
+.btn-link-nav {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    padding: 8px;
+    width: 100%;
+    text-align: center;
+}
+
+.btn-link-nav:hover {
+    color: var(--accent);
+}
+
+.btn-action {
+    padding: 0 12px;
+    height: 38px;
+    font-size: 12px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-light);
+    border-radius: 0 8px 8px 0;
+    width: auto;
+}
+
+.btn-action:hover {
+    background-color: var(--border);
+    color: var(--accent);
+}
+
+.btn-disconnect {
+    background-color: var(--danger-bg);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    width: auto;
+}
+
+.btn-disconnect:hover {
+    background-color: var(--danger);
+    color: var(--text-light);
+}
+
+/* VIEW: AUTHENTICATED (CAPTURE FORM) */
+.header-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 220px;
+    overflow: hidden;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--success);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--success);
+    flex-shrink: 0;
+}
+
+.user-email {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.form-scrollable {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 16px;
+}
+
+/* Custom Scrollbar for scrollable form */
+.form-scrollable::-webkit-scrollbar {
+    width: 4px;
+}
+.form-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+.form-scrollable::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+input, select {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-light);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    height: 38px;
+    width: 100%;
+}
+
+input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.input-action-group {
+    display: flex;
+    position: relative;
+}
+
+.input-action-group input {
+    border-radius: 8px 0 0 8px;
+    border-right: none;
+}
+
+.footer-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.view-divider {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 16px 0 8px 0;
+}
+
+.navigation-links {
+    text-align: center;
+}

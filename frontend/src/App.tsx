@@ -1,34 +1,85 @@
-import {
-    BrowserRouter,
-    Routes,
-    Route,
-} from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useAuthStore } from "./store/useAuthStore";
+import { useThemeStore } from "./store/useThemeStore";
+import { getCurrentUser } from "./api/auth";
 
 import Login from "./pages/Login";
 import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import OpportunityDetail from "./pages/OpportunityDetail";
+import Dashboard from "./pages/Dashboard";
+import Opportunities from "./pages/Opportunities";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 
 export default function App() {
+    const initializeAuth = useAuthStore((state) => state.initializeAuth);
+    const initializeTheme = useThemeStore((state) => state.initializeTheme);
+
+    useEffect(() => {
+        initializeAuth();
+        initializeTheme();
+
+        const token = useAuthStore.getState().token;
+        if (token) {
+            getCurrentUser()
+                .then((freshUser) => {
+                    useAuthStore.setState({ user: freshUser });
+                    localStorage.setItem("user", JSON.stringify(freshUser));
+                })
+                .catch((err) => {
+                    console.error("Failed to hydrate auth state:", err);
+                });
+        }
+    }, [initializeAuth, initializeTheme]);
 
     return (
-
         <BrowserRouter>
-
             <Routes>
+                <Route path="/" element={<Login />} />
 
                 <Route
-                    path="/"
-                    element={<Login />}
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Dashboard />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/opportunities"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Opportunities />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
                 />
 
                 <Route
                     path="/companies"
                     element={
                         <ProtectedRoute>
-                            <Companies />
+                            <Layout>
+                                <Companies />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/company"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Companies />
+                            </Layout>
                         </ProtectedRoute>
                     }
                 />
@@ -37,7 +88,9 @@ export default function App() {
                     path="/companies/:companyId"
                     element={
                         <ProtectedRoute>
-                            <CompanyDetail />
+                            <Layout>
+                                <CompanyDetail />
+                            </Layout>
                         </ProtectedRoute>
                     }
                 />
@@ -46,13 +99,13 @@ export default function App() {
                     path="/opportunities/:id"
                     element={
                         <ProtectedRoute>
-                            <OpportunityDetail />
+                            <Layout>
+                                <OpportunityDetail />
+                            </Layout>
                         </ProtectedRoute>
                     }
                 />
-
             </Routes>
-
         </BrowserRouter>
     );
 }

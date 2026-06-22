@@ -11,6 +11,7 @@ import opportunityRoutes from "./src/routes/opportunity.routes";
 import outreachRoutes from "./src/routes/outreach.routes";
 import followupRoutes from "./src/routes/followup.routes";
 import captureRoutes from "./src/routes/capture.routes";
+import metadataRoutes from "./src/routes/metadata.routes";
 
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api/opportunities", opportunityRoutes);
 app.use("/api/outreaches", outreachRoutes);
 app.use("/api/followups", followupRoutes);
 app.use("/api/capture", captureRoutes)
+app.use("/api/metadata", metadataRoutes);
 app.use(errorMiddleWare);
 const Port = process.env.PORT;
 app.listen(Port, ()=>{

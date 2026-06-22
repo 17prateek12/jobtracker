@@ -24,4 +24,18 @@ api.interceptors.request.use(
     }
 );
 
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            if (window.location.pathname !== "/") {
+                window.location.href = "/";
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default api;

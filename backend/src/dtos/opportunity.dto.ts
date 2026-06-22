@@ -34,4 +34,8 @@ export interface OpportunityQueryDto {
   jobLevel?: JobLevel;
   page?: string;
   limit?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  startDate?: string;
+  endDate?: string;
 }

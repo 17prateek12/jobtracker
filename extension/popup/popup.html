@@ -1,130 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Job Tracker</title>
-    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="popup.css">
 </head>
-
 <body>
-
     <div class="container">
-
-        <h2>Job Tracker</h2>
-
-        <!-- JWT -->
-
-        <div class="section">
-            <label>JWT Token</label>
-
-            <input id="tokenInput" type="text" placeholder="Paste JWT Token" />
-
-            <button id="saveTokenBtn">
-                Save JWT
+        
+        <!-- UNAUTHENTICATED STATE -->
+        <div id="authView" class="view-container">
+            <div class="brand">
+                <span class="brand-logo">💼</span>
+                <h1>Job Tracker</h1>
+            </div>
+            
+            <p class="description">Connect this extension to your Dashboard to capture and track jobs instantly.</p>
+            
+            <button id="loginDashboardBtn" class="btn btn-primary">
+                Login via Dashboard
             </button>
+            
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <div class="manual-section">
+                <button id="toggleManualBtn" class="btn btn-link">
+                    Paste API Token manually
+                </button>
+                <div id="manualTokenInputContainer" class="hidden">
+                    <input id="tokenInput" type="password" placeholder="Paste your JWT Token here..." />
+                    <button id="saveTokenBtn" class="btn btn-secondary">
+                        Save Token
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <hr />
+        <!-- AUTHENTICATED STATE -->
+        <div id="captureView" class="view-container hidden">
+            <div class="header-banner">
+                <div class="user-info">
+                    <span class="status-dot"></span>
+                    <span id="userEmailText" class="user-email">loading...</span>
+                </div>
+                <button id="disconnectBtn" class="btn btn-disconnect" title="Disconnect Account">
+                    Disconnect
+                </button>
+            </div>
 
-        <!-- Company -->
+            <div class="form-scrollable">
+                <!-- Company -->
+                <div class="form-group">
+                    <label for="companyInput">Company</label>
+                    <div class="input-action-group">
+                        <input id="companyInput" placeholder="Enter Company Name" />
+                        <button id="selectCompanyBtn" class="btn btn-action" title="Select Text from Page">
+                            Select
+                        </button>
+                    </div>
+                </div>
 
-        <div class="section">
-            <label>Company</label>
-            <input id="companyInput" placeholder="Company Name" />
+                <!-- Role -->
+                <div class="form-group">
+                    <label for="roleSelect">Job Role</label>
+                    <select id="roleSelect">
+                        <option value="">Select Role</option>
+                    </select>
+                </div>
 
-            <button id="selectCompanyBtn">
-                Select Company
-            </button>
-        </div>
+                <!-- Level -->
+                <div class="form-group">
+                    <label for="jobLevelSelect">Job Level</label>
+                    <select id="jobLevelSelect">
+                        <option value="">Select Level</option>
+                    </select>
+                </div>
 
+                <!-- Source -->
+                <div class="form-group">
+                    <label for="sourceSelect">Source</label>
+                    <select id="sourceSelect">
+                        <option value="">Select Source</option>
+                    </select>
+                </div>
 
-        <!-- Role Enum -->
+                <!-- Status -->
+                <div class="form-group">
+                    <label for="statusSelect">Status</label>
+                    <select id="statusSelect">
+                        <option value="">Select Status</option>
+                    </select>
+                </div>
 
-        <div class="section">
-            <label>Job Role</label>
+                <!-- Job URL -->
+                <div class="form-group">
+                    <label for="urlInput">Job URL</label>
+                    <div class="input-action-group">
+                        <input id="urlInput" placeholder="Paste Job URL" />
+                        <button id="captureUrlBtn" class="btn btn-action" title="Use Active Tab URL">
+                            Current
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-            <select id="roleSelect">
-                <option value="">
-                    Select Role
-                </option>
-            </select>
-        </div>
+            <!-- Footer Action Buttons -->
+            <div class="footer-actions">
+                <button id="clearBtn" class="btn btn-outline">
+                    Clear Form
+                </button>
+                <button id="saveJobBtn" class="btn btn-primary">
+                    Save Job
+                </button>
+            </div>
 
-        <!-- Level -->
+            <hr class="view-divider" />
 
-        <div class="section">
-            <label>Job Level</label>
-
-            <select id="jobLevelSelect">
-                <option value="">
-                    Select Level
-                </option>
-            </select>
-        </div>
-
-        <!-- Source -->
-
-        <div class="section">
-            <label>Source</label>
-
-            <select id="sourceSelect">
-                <option value="">
-                    Select Source
-                </option>
-            </select>
-        </div>
-
-        <!-- Status -->
-
-        <div class="section">
-            <label>Status</label>
-
-            <select id="statusSelect">
-                <option value="">
-                    Select Status
-                </option>
-            </select>
-        </div>
-
-        <!-- URL -->
-
-        <div class="section">
-            <label>URL</label>
-            <input id="urlInput" placeholder="Job URL" />
-
-            <button id="captureUrlBtn">
-                Use Current URL
-            </button>
-        </div>
-
-        <!-- Save -->
-
-        <div class="section">
-            <button id="saveJobBtn">
-                Save Job
-            </button>
-
-            <button id="clearBtn">
-                Clear
-            </button>
-        </div>
-
-        <hr />
-
-        <!-- Navigation -->
-
-        <div class="section">
-            <button id="viewCompaniesBtn">
-                View Companies
-            </button>
+            <div class="navigation-links">
+                <button id="viewCompaniesBtn" class="btn btn-link-nav">
+                    View Captured Companies ➔
+                </button>
+            </div>
         </div>
 
     </div>
-
-    <script type="module" src="popup.js">
-    </script>
-
+    
+    <script type="module" src="popup.js"></script>
 </body>
-
 </html>

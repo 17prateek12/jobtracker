@@ -1,596 +1,358 @@
-console.log("Loading..")
-import { captureJob, } from "../service/api.js";
+// popup.js
+import { captureJob, getEnums, getCurrentUser } from "../service/api.js";
 import {
     JOB_ROLES,
     JOB_LEVELS,
     OPPORTUNITY_SOURCES,
     OPPORTUNITY_STATUS,
 } from "./constants.js";
-const companyInput = document.getElementById("companyInput");
-const urlInput = document.getElementById("urlInput");
+
+// DOM Elements
+const authView = document.getElementById("authView");
+const captureView = document.getElementById("captureView");
+const loginDashboardBtn = document.getElementById("loginDashboardBtn");
+const toggleManualBtn = document.getElementById("toggleManualBtn");
+const manualTokenInputContainer = document.getElementById("manualTokenInputContainer");
 const tokenInput = document.getElementById("tokenInput");
+const saveTokenBtn = document.getElementById("saveTokenBtn");
 
+const disconnectBtn = document.getElementById("disconnectBtn");
+const userEmailText = document.getElementById("userEmailText");
 
-function populateSelect(selectId, values) {
-    const select = document.getElementById(selectId);
-    values.forEach(value => {
-        const option =
-            document.createElement("option");
+const companyInput = document.getElementById("companyInput");
+const selectCompanyBtn = document.getElementById("selectCompanyBtn");
+const roleSelect = document.getElementById("roleSelect");
+const jobLevelSelect = document.getElementById("jobLevelSelect");
+const sourceSelect = document.getElementById("sourceSelect");
+const statusSelect = document.getElementById("statusSelect");
+const urlInput = document.getElementById("urlInput");
+const captureUrlBtn = document.getElementById("captureUrlBtn");
 
-        option.value = value;
-        option.textContent = value;
+const clearBtn = document.getElementById("clearBtn");
+const saveJobBtn = document.getElementById("saveJobBtn");
+const viewCompaniesBtn = document.getElementById("viewCompaniesBtn");
 
-        select.appendChild(option);
+let isEnumsLoaded = false;
+
+// 1. Manage Views
+function showView(view) {
+    if (view === "auth") {
+        authView.classList.remove("hidden");
+        captureView.classList.add("hidden");
+    } else {
+        authView.classList.add("hidden");
+        captureView.classList.remove("hidden");
+    }
+}
+
+// 2. Populate Dropdowns
+function populateSelect(selectEl, values, defaultLabel) {
+    selectEl.innerHTML = `<option value="">${defaultLabel}</option>`;
+    values.forEach(val => {
+        const option = document.createElement("option");
+        option.value = val;
+        option.textContent = val.replace(/_/g, " ");
+        selectEl.appendChild(option);
     });
 }
 
-populateSelect("roleSelect", JOB_ROLES);
-populateSelect("jobLevelSelect", JOB_LEVELS);
-populateSelect("sourceSelect", OPPORTUNITY_SOURCES);
-populateSelect("statusSelect", OPPORTUNITY_STATUS);
+function initStaticDropdowns() {
+    populateSelect(roleSelect, JOB_ROLES, "Select Role");
+    populateSelect(jobLevelSelect, JOB_LEVELS, "Select Level");
+    populateSelect(sourceSelect, OPPORTUNITY_SOURCES, "Select Source");
+    populateSelect(statusSelect, OPPORTUNITY_STATUS, "Select Status");
+}
 
-
-
-const selectCompanyBtn = document.getElementById("selectCompanyBtn");
-const captureUrlBtn = document.getElementById("captureUrlBtn");
-const clearBtn = document.getElementById("clearBtn");
-
-async function loadForm() {
-    const data = await chrome.storage.local.get(null);
-    console.log("ALL STORAGE:", data);
+// 3. Load stored form inputs
+async function loadFormState() {
+    const data = await chrome.storage.local.get([
+        "company",
+        "jobRole",
+        "jobLevel",
+        "source",
+        "status",
+        "jobUrl"
+    ]);
+    
     companyInput.value = data.company || "";
     urlInput.value = data.jobUrl || "";
-    document.getElementById("roleSelect").value = data.jobRole || "";
-    document.getElementById("jobLevelSelect").value = data.jobLevel || "";
-    document.getElementById("sourceSelect").value = data.source || "";
-    document.getElementById("statusSelect").value = data.status || "";
+    
+    if (data.jobRole) roleSelect.value = data.jobRole;
+    if (data.jobLevel) jobLevelSelect.value = data.jobLevel;
+    if (data.source) sourceSelect.value = data.source;
+    if (data.status) statusSelect.value = data.status;
 }
-loadForm();
 
-selectCompanyBtn.addEventListener("click", async () => {
-    const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-    });
+// 4. Validate session and initialize Capture View
+async function checkAuthAndLoad() {
+    const data = await chrome.storage.local.get(["token", "user"]);
+    if (!data.token) {
+        showView("auth");
+        return;
+    }
 
-    // await chrome.tabs.sendMessage(
-    //     tab.id,
-    //     {
-    //         type: "START_SELECTION",
-    //         field: "company",
-    //     }
-    // );
     try {
-        await chrome.tabs.sendMessage(
-            tab.id,
-            {
-                type: "START_SELECTION",
-                field: "company",
+        // Validate token with backend
+        const meRes = await getCurrentUser();
+        if (meRes && meRes.success && meRes.data) {
+            // Update email UI
+            userEmailText.textContent = meRes.data.email || data.user?.email || "Connected";
+            showView("capture");
+            
+            // Fetch latest enums
+            if (!isEnumsLoaded) {
+                try {
+                    const enumsRes = await getEnums();
+                    if (enumsRes && enumsRes.success && enumsRes.data) {
+                        populateSelect(roleSelect, enumsRes.data.jobRoles, "Select Role");
+                        populateSelect(jobLevelSelect, enumsRes.data.jobLevels, "Select Level");
+                        populateSelect(sourceSelect, enumsRes.data.opportunitySources, "Select Source");
+                        populateSelect(statusSelect, enumsRes.data.opportunityStatuses, "Select Status");
+                        isEnumsLoaded = true;
+                    } else {
+                        initStaticDropdowns();
+                    }
+                } catch (enumErr) {
+                    console.warn("Failed to fetch dynamic metadata, falling back to static constants:", enumErr);
+                    initStaticDropdowns();
+                }
             }
-        );
+            
+            await loadFormState();
+            
+            // Automatically capture current tab URL if empty
+            if (!urlInput.value) {
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tab && tab.url && tab.url.startsWith("http")) {
+                    urlInput.value = tab.url;
+                    await chrome.storage.local.set({ jobUrl: tab.url });
+                }
+            }
+        } else {
+            // Token is invalid/expired
+            console.error("Invalid token response:", meRes);
+            await chrome.storage.local.remove(["token", "user"]);
+            showView("auth");
+        }
     } catch (err) {
-        console.error(
-            "Content script not loaded",
-            err
-        );
-
-        alert(
-            "Refresh page and try again"
-        );
+        console.error("Auth check failed:", err);
+        // If it's a network error/offline, check if we have a stored user object to allow offline viewing
+        if (data.user) {
+            userEmailText.textContent = `${data.user.email} (Offline)`;
+            showView("capture");
+            if (!isEnumsLoaded) initStaticDropdowns();
+            await loadFormState();
+        } else {
+            showView("auth");
+        }
     }
 }
-);
 
+// 5. Auth Action Listeners
+loginDashboardBtn.addEventListener("click", () => {
+    chrome.tabs.create({ url: "http://localhost:5173" });
+});
 
-captureUrlBtn.addEventListener("click", async () => {
-    const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-    });
+toggleManualBtn.addEventListener("click", () => {
+    manualTokenInputContainer.classList.toggle("hidden");
+});
 
-    urlInput.value = tab.url;
+saveTokenBtn.addEventListener("click", async () => {
+    const rawToken = tokenInput.value.trim();
+    if (!rawToken) {
+        alert("Please enter a valid token.");
+        return;
+    }
 
-    await chrome.storage.local.set({
-        jobUrl: tab.url,
-    });
-}
-);
+    saveTokenBtn.disabled = true;
+    saveTokenBtn.textContent = "Verifying...";
 
+    try {
+        // Temporarily store token to verify
+        await chrome.storage.local.set({ token: rawToken });
+        
+        const res = await getCurrentUser();
+        if (res && res.success && res.data) {
+            await chrome.storage.local.set({ 
+                token: rawToken, 
+                user: res.data 
+            });
+            tokenInput.value = "";
+            manualTokenInputContainer.classList.add("hidden");
+            isEnumsLoaded = false; // Trigger reload of enums for new user
+            await checkAuthAndLoad();
+        } else {
+            alert("Verification failed. The token might be invalid or expired.");
+            await chrome.storage.local.remove(["token", "user"]);
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Connection error. Ensure the backend server is running.");
+        await chrome.storage.local.remove(["token", "user"]);
+    } finally {
+        saveTokenBtn.disabled = false;
+        saveTokenBtn.textContent = "Save Token";
+    }
+});
+
+disconnectBtn.addEventListener("click", async () => {
+    if (confirm("Are you sure you want to disconnect?")) {
+        await chrome.storage.local.remove(["token", "user"]);
+        showView("auth");
+    }
+});
+
+// 6. Capture Form Listeners & Field Auto-save
 companyInput.addEventListener("input", async () => {
-    await chrome.storage.local.set({
-        company: companyInput.value,
-    });
-}
-);
+    await chrome.storage.local.set({ company: companyInput.value });
+});
 
 urlInput.addEventListener("input", async () => {
-    await chrome.storage.local.set({
-        jobUrl: urlInput.value,
-    });
-}
-);
+    await chrome.storage.local.set({ jobUrl: urlInput.value });
+});
 
-document.getElementById("roleSelect")
-    .addEventListener(
-        "change",
-        async (e) => {
+roleSelect.addEventListener("change", async () => {
+    await chrome.storage.local.set({ jobRole: roleSelect.value });
+});
 
-            await chrome.storage.local.set({
-                jobRole:
-                    e.target.value,
-            });
-        }
-    );
+jobLevelSelect.addEventListener("change", async () => {
+    await chrome.storage.local.set({ jobLevel: jobLevelSelect.value });
+});
 
-document.getElementById("jobLevelSelect")
-    .addEventListener(
-        "change",
-        async (e) => {
+sourceSelect.addEventListener("change", async () => {
+    await chrome.storage.local.set({ source: sourceSelect.value });
+});
 
-            await chrome.storage.local.set({
-                jobLevel:
-                    e.target.value,
-            });
-        }
-    );
+statusSelect.addEventListener("change", async () => {
+    await chrome.storage.local.set({ status: statusSelect.value });
+});
 
-document.getElementById("sourceSelect")
-    .addEventListener(
-        "change",
-        async (e) => {
+captureUrlBtn.addEventListener("click", async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.url) {
+        urlInput.value = tab.url;
+        await chrome.storage.local.set({ jobUrl: tab.url });
+    }
+});
 
-            await chrome.storage.local.set({
-                source:
-                    e.target.value,
-            });
-        }
-    );
-
-document.getElementById("statusSelect")
-    .addEventListener(
-        "change",
-        async (e) => {
-
-            await chrome.storage.local.set({
-                status:
-                    e.target.value,
-            });
-        }
-    );
+selectCompanyBtn.addEventListener("click", async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+    try {
+        await chrome.tabs.sendMessage(tab.id, {
+            type: "START_SELECTION",
+            field: "company",
+        });
+    } catch (err) {
+        console.error("Failed to communicate with content script:", err);
+        alert("Please refresh the active webpage to enable text selection.");
+    }
+});
 
 clearBtn.addEventListener("click", async () => {
-    await chrome.storage.local.clear();
+    await chrome.storage.local.remove([
+        "company",
+        "jobRole",
+        "jobLevel",
+        "source",
+        "status",
+        "jobUrl"
+    ]);
     companyInput.value = "";
     urlInput.value = "";
-    document.getElementById("roleSelect").value = "";
-    document.getElementById("jobLevelSelect").value = "";
-    document.getElementById("sourceSelect").value = "";
-    document.getElementById("statusSelect").value = "";
-}
-);
+    roleSelect.value = "";
+    jobLevelSelect.value = "";
+    sourceSelect.value = "";
+    statusSelect.value = "";
+});
 
+saveJobBtn.addEventListener("click", async () => {
+    const payload = {
+        companyName: companyInput.value.trim(),
+        jobName: roleSelect.value,
+        jobLevel: jobLevelSelect.value,
+        opportunityStatus: statusSelect.value,
+        source: sourceSelect.value,
+        jobUrl: urlInput.value.trim(),
+    };
 
-document.addEventListener(
-    "DOMContentLoaded",
-    loadForm
-);
-
-window.addEventListener(
-    "focus",
-    loadForm
-);
-
-chrome.storage.onChanged.addListener(
-    () => {
-        loadForm();
+    if (!payload.companyName) {
+        alert("Company Name is required.");
+        return;
     }
-);
-
-document.getElementById("saveTokenBtn")
-    .addEventListener("click", async () => {
-        await chrome.storage.local.set({ token: tokenInput.value, });
-        alert("JWT Saved");
+    if (!payload.jobName) {
+        alert("Job Role is required.");
+        return;
     }
-    );
+    if (!payload.jobLevel) {
+        alert("Job Level is required.");
+        return;
+    }
+    if (!payload.opportunityStatus) {
+        alert("Status is required.");
+        return;
+    }
+    if (!payload.source) {
+        alert("Source is required.");
+        return;
+    }
 
-document.getElementById("saveJobBtn")
-    .addEventListener("click", async () => {
-        try {
-            const payload = {
-                companyName: companyInput.value,
-                jobName: document.getElementById("roleSelect").value,
-                jobLevel: document.getElementById("jobLevelSelect").value,
-                opportunityStatus: document.getElementById("statusSelect").value,
-                source: document.getElementById("sourceSelect").value,
-                jobUrl: urlInput.value,
-            };
-            const result = await captureJob(payload)
-            console.log(result);
-            alert("Saved to database");
-        } catch (error) {
-            console.error(error);
+    saveJobBtn.disabled = true;
+    saveJobBtn.textContent = "Saving...";
+
+    try {
+        const res = await captureJob(payload);
+        if (res && res.success) {
+            alert("Opportunity successfully captured!");
+            
+            // Clear fields after successful capture
+            await chrome.storage.local.remove([
+                "company",
+                "jobRole",
+                "jobLevel",
+                "source",
+                "status",
+                "jobUrl"
+            ]);
+            companyInput.value = "";
+            urlInput.value = "";
+            roleSelect.value = "";
+            jobLevelSelect.value = "";
+            sourceSelect.value = "";
+            statusSelect.value = "";
+        } else {
+            alert("Failed to capture: " + (res?.message || "Unknown error"));
         }
+    } catch (err) {
+        console.error("Capture request error:", err);
+        alert("An error occurred while saving the job opportunity.");
+    } finally {
+        saveJobBtn.disabled = false;
+        saveJobBtn.textContent = "Save Job";
     }
-    );
+});
 
-document.getElementById("viewCompaniesBtn")
-    .addEventListener("click", () => {
-        chrome.tabs.create({
-            url:
-                chrome.runtime.getURL(
-                    "pages/companies.html"
-                ),
-        });
+viewCompaniesBtn.addEventListener("click", () => {
+    chrome.tabs.create({
+        url: chrome.runtime.getURL("pages/companies.html")
+    });
+});
+
+// Listen to storage changes to support automatic login sync while popup is open
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === "local" && (changes.token || changes.user)) {
+        checkAuthAndLoad();
     }
-    );
-
-
-
-// // auth flow
-// async function handleCredentialResponse(response) {
-//   try {
-//     const backendResponse = await fetch("http://localhost:5000/api/auth/google-login",
-//       {
-//         method:"POST",
-//         headers:{
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({idToken: response.credential,}),
-//       }
-//     );
-
-//     const data = await backendResponse.json();
-//     await chrome.storage.local.set({token: data.data.token, user: data.data.user,});
-//     showLoggedIn();
-//   } catch (error) {
-//     console.error(error);
-//     alert("Login Failed");
-//   }
-// }
-
-// window.handleCredentialResponse = handleCredentialResponse;
-
-// async function checkAuth() {
-//   const {token} = await chrome.storage.local.get("token");
-//   if(token){
-//     showLoggedIn();
-//   }
-// }
-
-// function showLoggedIn() {
-//   document.getElementById("authContainer").style.display = "none";
-//   document.getElementById("loggedInContainer").style.display = "block";
-// }
-
-// document.getElementById("logoutBtn")
-// ?.addEventListener("click", async()=>{
-//   await chrome.storage.local.clear();
-//   location.reload();
-// });
-
-// checkAuth();
-
-
-
-// const companyInput =
-//   document.getElementById(
-//     "companyInput"
-//   );
-
-// const roleInput =
-//   document.getElementById(
-//     "roleInput"
-//   );
-
-// const urlInput =
-//   document.getElementById(
-//     "urlInput"
-//   );
-
-// const selectCompanyBtn =
-//   document.getElementById(
-//     "selectCompanyBtn"
-//   );
-
-// const selectRoleBtn =
-//   document.getElementById(
-//     "selectRoleBtn"
-//   );
-
-// const captureUrlBtn =
-//   document.getElementById(
-//     "captureUrlBtn"
-//   );
-
-// const clearBtn =
-//   document.getElementById(
-//     "clearBtn"
-//   );
-
-// async function loadForm() {
-
-//     const data =
-//         await chrome.storage.local.get(null);
-
-//     console.log(
-//         "ALL STORAGE:",
-//         data
-//     );
-
-//     companyInput.value =
-//         data.company || "";
-
-//     urlInput.value =
-//         data.jobUrl || "";
-// }
-
-
-// // const companyInput =
-// //     document.getElementById(
-// //         "companyInput"
-// //     );
-
-// // const roleInput =
-// //     document.getElementById(
-// //         "roleInput"
-// //     );
-
-// // const urlInput =
-// //     document.getElementById(
-// //         "urlInput"
-// //     );
-
-// // const selectCompanyBtn =
-// //     document.getElementById(
-// //         "selectCompanyBtn"
-// //     );
-
-// // const selectRoleBtn =
-// //     document.getElementById(
-// //         "selectRoleBtn"
-// //     );
-
-// // const captureUrlBtn =
-// //     document.getElementById(
-// //         "captureUrlBtn"
-// //     );
-
-// // const clearBtn =
-// //     document.getElementById(
-// //         "clearBtn"
-// //     );
-
-// // async function loadForm() {
-
-// //     const data =
-// //         await chrome.storage.local.get([
-// //             "company",
-// //             "role",
-// //             "jobUrl",
-// //         ]);
-
-// //     companyInput.value =
-// //         data.company || "";
-
-// //     roleInput.value =
-// //         data.role || "";
-
-// //     urlInput.value =
-// //         data.jobUrl || "";
-// // }
-
-// // loadForm();
-
-// // selectCompanyBtn.addEventListener(
-// //     "click",
-// //     async () => {
-
-// //         const [tab] =
-// //             await chrome.tabs.query({
-// //                 active: true,
-// //                 currentWindow: true,
-// //             });
-
-// //         chrome.tabs.sendMessage(
-// //             tab.id,
-// //             {
-// //                 type: "START_SELECTION",
-// //                 field: "company",
-// //             }
-// //         );
-
-// //         window.close();
-// //     }
-// // );
-
-// // selectRoleBtn.addEventListener(
-// //     "click",
-// //     async () => {
-
-// //         const [tab] =
-// //             await chrome.tabs.query({
-// //                 active: true,
-// //                 currentWindow: true,
-// //             });
-
-// //         chrome.tabs.sendMessage(
-// //             tab.id,
-// //             {
-// //                 type: "START_SELECTION",
-// //                 field: "role",
-// //             }
-// //         );
-
-// //         window.close();
-// //     }
-// // );
-
-// // captureUrlBtn.addEventListener(
-// //     "click",
-// //     async () => {
-
-// //         const [tab] =
-// //             await chrome.tabs.query({
-// //                 active: true,
-// //                 currentWindow: true,
-// //             });
-
-// //         urlInput.value =
-// //             tab.url;
-
-// //         await chrome.storage.local.set({
-// //             jobUrl: tab.url,
-// //         });
-// //     }
-// // );
-
-// // companyInput.addEventListener(
-// //     "change",
-// //     async () => {
-
-// //         await chrome.storage.local.set({
-// //             company:
-// //                 companyInput.value,
-// //         });
-// //     }
-// // );
-
-// // roleInput.addEventListener(
-// //     "change",
-// //     async () => {
-
-// //         await chrome.storage.local.set({
-// //             role:
-// //                 roleInput.value,
-// //         });
-// //     }
-// // );
-
-// // urlInput.addEventListener(
-// //     "change",
-// //     async () => {
-
-// //         await chrome.storage.local.set({
-// //             jobUrl:
-// //                 urlInput.value,
-// //         });
-// //     }
-// // );
-
-// // clearBtn.addEventListener(
-// //     "click",
-// //     async () => {
-
-// //         await chrome.storage.local.remove([
-// //             "company",
-// //             "role",
-// //             "jobUrl",
-// //         ]);
-
-// //         companyInput.value = "";
-
-// //         roleInput.value = "";
-
-// //         urlInput.value = "";
-// //     }
-// // );
-
-// // const companyValue =
-// //     document.getElementById(
-// //         "companyValue"
-// //     );
-
-// // const selectCompanyBtn =
-// //     document.getElementById(
-// //         "selectCompanyBtn"
-// //     );
-
-// // chrome.runtime.onMessage.addListener(
-// //     (message) => {
-
-// //         if (
-// //             message.type ===
-// //             "FIELD_SELECTED"
-// //         ) {
-
-// //             if (
-// //                 message.field ===
-// //                 "company"
-// //             ) {
-
-// //                 companyValue.innerText =
-// //                     message.value;
-// //             }
-// //         }
-// //     }
-// // );
-
-// // selectCompanyBtn.addEventListener(
-// //     "click",
-// //     async () => {
-
-// //         const [tab] =
-// //             await chrome.tabs.query({
-// //                 active: true,
-// //                 currentWindow: true,
-// //             });
-
-// //         chrome.tabs.sendMessage(
-// //             tab.id,
-// //             {
-// //                 type: "START_SELECTION",
-// //                 field: "company",
-// //             }
-// //         );
-// //     }
-// // );
-
-// // const companyValue =
-// //     document.getElementById(
-// //         "companyValue"
-// //     );
-
-// // const selectCompanyBtn =
-// //     document.getElementById(
-// //         "selectCompanyBtn"
-// //     );
-
-// // chrome.runtime.onMessage.addListener(
-// //     (message) => {
-
-// //         if (
-// //             message.type ===
-// //             "FIELD_SELECTED"
-// //         ) {
-
-// //             if (
-// //                 message.field ===
-// //                 "company"
-// //             ) {
-
-// //                 companyValue.innerText =
-// //                     message.value;
-// //             }
-// //         }
-// //     }
-// // );
-
-// // selectCompanyBtn.addEventListener(
-// //     "click",
-// //     async () => {
-
-// //         const tabs =
-// //             await chrome.tabs.query({
-// //                 active: true,
-// //                 currentWindow: true,
-// //             });
-
-// //         chrome.tabs.sendMessage(
-// //             tabs[0].id,
-// //             {
-// //                 type: "START_SELECTION",
-// //                 field: "company",
-// //             }
-// //         );
-// //     }
-// // );
+    // Also update forms dynamically if content script captured selection text
+    if (namespace === "local") {
+        if (changes.company) companyInput.value = changes.company.newValue || "";
+        if (changes.jobUrl) urlInput.value = changes.jobUrl.newValue || "";
+    }
+});
+
+// Initial Startup
+document.addEventListener("DOMContentLoaded", () => {
+    initStaticDropdowns();
+    checkAuthAndLoad();
+});
+window.addEventListener("focus", checkAuthAndLoad);
