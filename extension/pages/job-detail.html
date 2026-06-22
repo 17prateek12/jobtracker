@@ -1,17 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Detail & Communication Logs</title>
+    <link rel="stylesheet" href="pages.css">
+</head>
 <body>
+    <div class="page-container">
+        <div class="page-header">
+            <div>
+                <button id="backBtn" class="back-link">➔ Back to Jobs</button>
+                <h2>Opportunity Detail</h2>
+            </div>
+            <button id="openDashboardBtn" class="btn-nav-top">Open in Dashboard</button>
+        </div>
 
-<h2>Job Detail</h2>
+        <div class="detail-grid">
+            <!-- Job Info Card -->
+            <div class="detail-card">
+                <h3 id="jobRoleText" class="detail-title">Loading...</h3>
+                <div class="detail-meta-row">
+                    <span id="companyBadge" class="badge badge-saved">loading...</span>
+                    <span id="levelBadge" class="badge badge-saved">loading...</span>
+                    <span id="statusBadge" class="badge badge-saved">loading...</span>
+                    <span id="sourceBadge" class="badge badge-saved">loading...</span>
+                </div>
+                <p><strong>Job URL:</strong> <a id="jobUrlLink" href="#" target="_blank" class="detail-link">Visit job listing ↗</a></p>
+            </div>
 
-<div id="job"></div>
-<button id="openDashboardBtn">
-    Open Dashboard
-</button>
-<script
-  type="module"
-  src="job-detail.js">
-</script>
+            <!-- Outreach Section Header -->
+            <div class="section-title">
+                <span>Outreach & Recruiting Logs</span>
+                <button id="toggleOutreachFormBtn" class="btn btn-primary btn-small">+ Log Outreach</button>
+            </div>
 
+            <!-- Log Outreach Form -->
+            <form id="outreachForm" class="log-form hidden">
+                <h3>Log New Outreach</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="outreachTypeSelect">Outreach Type</label>
+                        <select id="outreachTypeSelect" required>
+                            <option value="LINKEDIN_DM">LinkedIn DM</option>
+                            <option value="EMAIL">Email</option>
+                            <option value="REFERRAL">Referral</option>
+                            <option value="WHATSAPP">WhatsApp</option>
+                            <option value="DIRECT_APPLY">Direct Apply</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="outreachStatusSelect">Status</label>
+                        <select id="outreachStatusSelect">
+                            <option value="SENT">Sent</option>
+                            <option value="DRAFT">Draft</option>
+                            <option value="FOLLOWUP">Follow-up Needed</option>
+                            <option value="RESPONDED">Responded</option>
+                            <option value="REPLIED">Replied</option>
+                            <option value="REFERRAL_GIVEN">Referral Given</option>
+                            <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
+                            <option value="REJECTED">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contactNameInput">Contact Name</label>
+                        <input id="contactNameInput" type="text" placeholder="e.g. Jane Doe" />
+                    </div>
+                    <div class="form-group">
+                        <label for="contactRoleSelect">Contact Role</label>
+                        <select id="contactRoleSelect">
+                            <option value="">Select Role</option>
+                            <option value="RECRUITER">Recruiter</option>
+                            <option value="HR">HR Specialist</option>
+                            <option value="EMPLOYEE">Employee</option>
+                            <option value="EM">Engineering Manager</option>
+                            <option value="CTO">CTO</option>
+                            <option value="CEO">CEO</option>
+                            <option value="FOUNDER">Founder</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contactEmailInput">Email Address</label>
+                        <input id="contactEmailInput" type="email" placeholder="recruiter@company.com" />
+                    </div>
+                    <div class="form-group">
+                        <label for="contactLinkedinInput">LinkedIn Profile URL</label>
+                        <input id="contactLinkedinInput" type="url" placeholder="https://linkedin.com/in/..." />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="outreachNotesText">Notes / Message Copy</label>
+                    <textarea id="outreachNotesText" placeholder="Write any notes or paste the message you sent here..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancelOutreachBtn" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Outreach</button>
+                </div>
+            </form>
+
+            <!-- Outreach History List -->
+            <div id="outreachList" class="outreach-list">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="job-detail.js"></script>
 </body>
 </html>

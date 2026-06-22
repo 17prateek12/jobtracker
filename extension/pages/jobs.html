@@ -1,16 +1,28 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Company Jobs</title>
+    <link rel="stylesheet" href="pages.css">
+</head>
 <body>
+    <div class="page-container">
+        <div class="page-header">
+            <div>
+                <button id="backBtn" class="back-link">➔ Back to Companies</button>
+                <h2 id="pageTitle">Opportunities</h2>
+            </div>
+        </div>
 
-<h2>Jobs</h2>
+        <div class="search-box">
+            <input id="searchInput" type="text" placeholder="Search opportunities by role..." />
+        </div>
 
-<ul id="jobs"></ul>
+        <ul id="jobs" class="card-list">
+            <!-- Loaded dynamically -->
+        </ul>
+    </div>
 
-<script
-    type="module"
-    src="jobs.js">
-</script>
-
+    <script type="module" src="jobs.js"></script>
 </body>
 </html>

@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <title>Companies</title>
+    <meta charset="UTF-8">
+    <title>Captured Companies</title>
+    <link rel="stylesheet" href="pages.css">
 </head>
-
 <body>
+    <div class="page-container">
+        <div class="page-header">
+            <h2>Captured Companies</h2>
+            <button id="closeTabBtn" class="btn-nav-top">Close Tab</button>
+        </div>
 
-  <h2>Companies</h2>
+        <div class="search-box">
+            <input id="searchInput" type="text" placeholder="Search companies..." />
+        </div>
 
-  <ul id="companies"></ul>
+        <ul id="companies" class="card-list">
+            <!-- Loaded dynamically -->
+        </ul>
+    </div>
 
-  <script type="module" src="companies.js">
-  </script>
-
+    <script type="module" src="companies.js"></script>
 </body>
-
 </html>

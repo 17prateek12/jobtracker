@@ -104,3 +104,22 @@ export async function getCurrentUser() {
     return response.json();
 }
 
+export const getOutreaches = (opportunityId) =>
+    request(`/outreaches?opportunityId=${opportunityId}`);
+
+export const createOutreach = (payload) =>
+    request("/outreaches", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+
+export const getFollowups = (outreachId) =>
+    request(`/followups/outreach/${outreachId}`);
+
+export const createFollowup = (payload) =>
+    request("/followups", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+
+
