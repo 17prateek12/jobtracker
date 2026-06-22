@@ -12,10 +12,23 @@ import outreachRoutes from "./src/routes/outreach.routes";
 import followupRoutes from "./src/routes/followup.routes";
 import captureRoutes from "./src/routes/capture.routes";
 import metadataRoutes from "./src/routes/metadata.routes";
+import templateRoutes from "./src/routes/template.routes";
+import { initializeS3Bucket } from "./src/config/s3";
+import resumeRoutes from "./src/routes/resume.routes";
+import aiRoutes from "./src/routes/ai.routes";
+import interviewRoutes from "./src/routes/interview.routes";
+import { initNotificationQueue } from "./src/queues/notification.queue";
+import { initNotificationWorker } from "./src/workers/notification.worker";
 
 
 dotenv.config();
 connectToDB();
+initializeS3Bucket();
+
+// Initialize BullMQ background queues and workers
+initNotificationQueue().catch((err) => console.error("Notification queue init failed:", err));
+initNotificationWorker();
+
 const app = express();
 app.use(cors({
     origin: true,
@@ -38,6 +51,10 @@ app.use("/api/outreaches", outreachRoutes);
 app.use("/api/followups", followupRoutes);
 app.use("/api/capture", captureRoutes)
 app.use("/api/metadata", metadataRoutes);
+app.use("/api/templates", templateRoutes);
+app.use("/api/resumes", resumeRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/interviews", interviewRoutes);
 app.use(errorMiddleWare);
 const Port = process.env.PORT;
 app.listen(Port, ()=>{

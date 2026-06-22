@@ -53,6 +53,11 @@ const opportunitySchema = new Schema(
       enum: Object.values(OpportunityStatus),
       default: OpportunityStatus.SAVED,
     },
+
+    resumeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Resume",
+    },
   },
   {
     timestamps: true,

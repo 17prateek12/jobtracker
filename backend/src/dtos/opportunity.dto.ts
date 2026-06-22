@@ -11,6 +11,7 @@ export interface CreateOpportunityDto {
     notes?: string;
     appliedAt?: Date,
     status?: OpportunityStatus;
+    resumeId?: string;
 }
 
 export interface UpdateOpportunityDto {
@@ -23,6 +24,7 @@ export interface UpdateOpportunityDto {
   notes?: string;
   appliedAt?: Date,
   status?: OpportunityStatus;
+  resumeId?: string;
 }
 
 export interface OpportunityQueryDto {

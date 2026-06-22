@@ -17,6 +17,8 @@ const defaultEnums: BackendEnums = {
     outreachTypes: [],
     outreachStatuses: [],
     requiredSkills: [],
+    interviewTypes: [],
+    interviewStatuses: [],
 };
 
 export default function OpportunityDetail() {
@@ -161,6 +163,7 @@ export default function OpportunityDetail() {
                 <OutreachSection 
                     outreaches={outreaches}
                     enums={enums || defaultEnums}
+                    opportunity={opportunity}
                     onUpdateOutreachStatus={handleUpdateOutreachStatus}
                     onDeleteOutreach={handleDeleteOutreach}
                     onCreateOutreach={handleCreateOutreach}

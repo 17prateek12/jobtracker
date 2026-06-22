@@ -223,3 +223,18 @@ export enum RequiredSkills {
   DESIGN_PATTERNS = "DESIGN PATTERNS",
   AGILE = "AGILE",
 }
+
+export enum InterviewType {
+  SCREENING = "SCREENING",
+  TECHNICAL = "TECHNICAL",
+  SYSTEM_DESIGN = "SYSTEM_DESIGN",
+  BEHAVIORAL = "BEHAVIORAL",
+  HR = "HR",
+  OTHER = "OTHER",
+}
+
+export enum InterviewStatus {
+  SCHEDULED = "SCHEDULED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}

@@ -8,7 +8,9 @@ import {
     ContactRole, 
     OutreachType, 
     OutreachStatus,
-    RequiredSkills 
+    RequiredSkills,
+    InterviewType,
+    InterviewStatus
 } from "../types/types";
 import { APIResponse } from "../utils/ApiResponse";
 import { HTTP_STATUS } from "../constants/httpStatus";
@@ -24,6 +26,8 @@ export const getEnums = asyncHandler(async (req: Request, res: Response): Promis
             outreachTypes: Object.values(OutreachType),
             outreachStatuses: Object.values(OutreachStatus),
             requiredSkills: Object.values(RequiredSkills),
+            interviewTypes: Object.values(InterviewType),
+            interviewStatuses: Object.values(InterviewStatus),
         })
     );
 });

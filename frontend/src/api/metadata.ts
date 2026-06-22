@@ -9,6 +9,8 @@ export interface BackendEnums {
     outreachTypes: string[];
     outreachStatuses: string[];
     requiredSkills: string[];
+    interviewTypes: string[];
+    interviewStatuses: string[];
 }
 
 export const getBackendEnums = async (): Promise<BackendEnums> => {

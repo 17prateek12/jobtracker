@@ -1,5 +1,6 @@
 import Opportunity from "../models/Opportunity";
 import Company from "../models/Company";
+import { Types } from "mongoose";
 import { ApiError } from "../utils/ApiError";
 import { validateObjectId } from "../utils/validateObjectId";
 import { CreateOpportunityDto, OpportunityQueryDto, UpdateOpportunityDto } from "../dtos/opportunity.dto";
@@ -28,6 +29,7 @@ export const createOpportunityService = async (userId: string, payload: CreateOp
         notes: payload.notes,
         status: payload.status,
         appliedAt: payload.appliedAt ?? appliedAt,
+        resumeId: payload.resumeId,
     });
 
     return opportunity;
@@ -81,6 +83,7 @@ export const getOpportunitiesService = async (userId: string, query: Opportunity
     const [items, total] = await Promise.all([
         Opportunity.find(filter)
             .populate("companyId", "name website linkedinUrl")
+            .populate("resumeId", "name version s3Url type")
             .sort(sortOptions)
             .skip((page - 1) * limit)
             .limit(limit),
@@ -103,7 +106,8 @@ export const getOpportunityByIdService = async (userId: string, opportunityId: s
     validateObjectId(opportunityId, "Opportunity");
 
     const opportunity = await Opportunity.findOne({ _id: opportunityId, userId, })
-        .populate("companyId", "name website linkedinUrl");
+        .populate("companyId", "name website linkedinUrl")
+        .populate("resumeId", "name version s3Url type");
 
     if (!opportunity) {
         throw new ApiError(
@@ -165,6 +169,11 @@ export const updateOpportunityService = async (userId: string, opportunityId: st
         }
         opportunity.status = payload.status;
     }
+
+    if (payload.resumeId !== undefined) {
+        opportunity.resumeId = payload.resumeId ? new Types.ObjectId(payload.resumeId) : undefined;
+    }
+
     await opportunity.save();
     return opportunity;
 };

@@ -1,8 +1,8 @@
 import api from "./api";
 
-export const getOutreaches = async (opportunityId: string) => {
+export const getOutreaches = async (opportunityId?: string) => {
     const response = await api.get("/api/outreaches", {
-        params: { opportunityId }
+        params: opportunityId ? { opportunityId } : undefined
     });
     return response.data.data;
 };

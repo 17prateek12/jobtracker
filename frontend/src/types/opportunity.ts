@@ -17,6 +17,13 @@ export interface Opportunity {
     requiredSkills?: string[];
     notes?: string;
     appliedAt?: string;
+    resumeId?: {
+        _id: string;
+        name: string;
+        version: number;
+        s3Url?: string;
+        type: "UPLOADED" | "BUILT";
+    } | string;
     createdAt?: string;
     updatedAt?: string;
 }

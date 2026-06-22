@@ -8,6 +8,7 @@ import {
     updateOutreachService,
     deleteOutreachService
 } from "../services/outreach.service";
+import { checkFollowupReminders } from "../services/notification.service";
 import { CreateOutreachDto, UpdateOutreachDto, OutreachQueryDto } from "../dtos/outreach.dto";
 import { HTTP_STATUS } from "../constants/httpStatus";
 
@@ -69,6 +70,17 @@ export const deleteOutreach =
         res.status(HTTP_STATUS.OK).json(
             new APIResponse(
                 "Outreach deleted successfully"
+            )
+        );
+    });
+
+export const triggerNotificationCheck =
+    asyncHandler(async (req: Request, res: Response): Promise<void> => {
+        const count = await checkFollowupReminders();
+        res.status(HTTP_STATUS.OK).json(
+            new APIResponse(
+                `Manual followup reminders check complete. Sent ${count} email notifications.`,
+                { sentCount: count }
             )
         );
     });

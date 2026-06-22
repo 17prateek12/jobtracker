@@ -28,6 +28,8 @@ export const createFollowupService = async (userId: string, payload: CreateFollo
     outreach.followupCount += 1;
     outreach.lastInteractionAt = new Date();
     outreach.nextFollowupAt = undefined;
+    (outreach as any).notified3Day = false;
+    (outreach as any).notified7Day = false;
     await outreach.save();
     return followup;
 };

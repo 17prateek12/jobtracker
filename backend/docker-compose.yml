@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: jobtrack-s3-floci
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./floci-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: jobtrack-redis
+    ports:
+      - "6379:6379"
+    restart: always
+

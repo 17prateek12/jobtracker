@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import type { Opportunity } from "../../../types/opportunity";
 import type { BackendEnums } from "../../../api/metadata";
+import { useQuery } from "@tanstack/react-query";
+import { getResumes } from "../../../api/resume";
+import { analyzeResume } from "../../../api/ai";
+import type { IResumeAnalysis } from "../../../api/ai";
 
 interface OpportunityInfoProps {
     opportunity: Opportunity;
@@ -11,7 +15,43 @@ interface OpportunityInfoProps {
 }
 
 export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickStatusChange }: OpportunityInfoProps) {
+    const { data: resumes = [] } = useQuery({
+        queryKey: ["resumes"],
+        queryFn: () => getResumes(false),
+    });
+
     const [isEditing, setIsEditing] = useState(false);
+    const [atsResult, setAtsResult] = useState<IResumeAnalysis | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisError, setAnalysisError] = useState("");
+
+    const handleRunAtsScan = async () => {
+        setIsAnalyzing(true);
+        setAnalysisError("");
+        try {
+            const resumeId = (opportunity.resumeId && typeof opportunity.resumeId === "object")
+                ? opportunity.resumeId._id
+                : (typeof opportunity.resumeId === "string" ? opportunity.resumeId : "");
+
+            if (!resumeId) {
+                throw new Error("No resume assigned");
+            }
+
+            const result = await analyzeResume(resumeId, opportunity.jobDescription || "");
+            setAtsResult(result);
+        } catch (err: any) {
+            console.error("ATS analysis error:", err);
+            setAnalysisError(err?.response?.data?.message || err.message || "Failed to scan resume.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const getScoreColor = (score: number) => {
+        if (score >= 80) return "#10b981"; // Green
+        if (score >= 60) return "#f59e0b"; // Yellow/Orange
+        return "#ef4444"; // Red
+    };
     const [skillSearchQuery, setSkillSearchQuery] = useState("");
     const [form, setForm] = useState({
         jobRole: "",
@@ -23,6 +63,7 @@ export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickS
         notes: "",
         status: "",
         appliedAt: "",
+        resumeId: "",
     });
 
     const normalizeSkills = (skills: string[], allowedSkills: string[]): string[] => {
@@ -46,6 +87,9 @@ export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickS
                 notes: opportunity.notes || "",
                 status: opportunity.status || "",
                 appliedAt: opportunity.appliedAt ? new Date(opportunity.appliedAt).toISOString().substring(0, 10) : "",
+                resumeId: (opportunity.resumeId && typeof opportunity.resumeId === "object")
+                    ? opportunity.resumeId._id
+                    : (typeof opportunity.resumeId === "string" ? opportunity.resumeId : ""),
             });
         }
     }, [opportunity, isEditing, enums]);
@@ -70,6 +114,7 @@ export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickS
             await onUpdate({
                 ...form,
                 appliedAt: form.appliedAt ? new Date(form.appliedAt).toISOString() : null,
+                resumeId: form.resumeId || null,
             });
             setIsEditing(false);
         } catch (err) {
@@ -204,6 +249,22 @@ export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickS
                     </div>
 
                     <div style={styles.formGroup}>
+                        <label style={styles.label}>Associated Resume</label>
+                        <select
+                            value={form.resumeId}
+                            onChange={e => setForm({ ...form, resumeId: e.target.value })}
+                            style={styles.select}
+                        >
+                            <option value="">-- No Resume Assigned --</option>
+                            {resumes.map(resume => (
+                                <option key={resume._id} value={resume._id}>
+                                    {resume.name} (v{resume.version})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div style={styles.formGroup}>
                         <label style={styles.label}>Job Description</label>
                         <textarea
                             value={form.jobDescription}
@@ -275,6 +336,30 @@ export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickS
                         </span>
                     </div>
                     <div style={styles.detailRow}>
+                        <span style={styles.detailLabel}>Associated Resume</span>
+                        <span style={styles.detailValue}>
+                            {opportunity.resumeId && typeof opportunity.resumeId === 'object' ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ color: "var(--text-h)", fontWeight: 500 }}>
+                                        {opportunity.resumeId.name} (v{opportunity.resumeId.version})
+                                    </span>
+                                    {opportunity.resumeId.s3Url && (
+                                        <a
+                                            href={opportunity.resumeId.s3Url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={styles.resumeLink}
+                                        >
+                                            📄 View File
+                                        </a>
+                                    )}
+                                </div>
+                            ) : (
+                                <span style={styles.noneText}>No resume assigned</span>
+                            )}
+                        </span>
+                    </div>
+                    <div style={styles.detailRow}>
                         <span style={styles.detailLabel}>Status</span>
                         <select
                             value={opportunity.status}
@@ -335,6 +420,99 @@ export default function OpportunityInfo({ opportunity, enums, onUpdate, onQuickS
                         ) : (
                             <span style={{ ...styles.noneText, display: "block", marginTop: "4px" }}>No description provided</span>
                         )}
+                    </div>
+
+                    <div style={styles.detailDivider} />
+
+                    <div style={{ textAlign: "left" }}>
+                        <span style={styles.detailLabel}>AI ATS Match Score (Senior Recruiter)</span>
+                        <div style={styles.atsContainer}>
+                            {!opportunity.resumeId ? (
+                                <div style={styles.atsWarning}>
+                                    ⚠️ Please assign an online-built resume in "Edit Details" mode to analyze ATS match.
+                                </div>
+                            ) : typeof opportunity.resumeId === "object" && opportunity.resumeId.type !== "BUILT" ? (
+                                <div style={styles.atsWarning}>
+                                    ⚠️ ATS analysis is only supported for online-built resumes. Please assign a built resume.
+                                </div>
+                            ) : !opportunity.jobDescription || !opportunity.jobDescription.trim() ? (
+                                <div style={styles.atsWarning}>
+                                    ⚠️ Please add a Job Description to this opportunity to check your ATS match.
+                                </div>
+                            ) : (
+                                <div>
+                                    {!atsResult ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleRunAtsScan}
+                                            style={styles.atsAnalyzeBtn}
+                                            disabled={isAnalyzing}
+                                        >
+                                            {isAnalyzing ? "Scanning Resume..." : "🔍 Run ATS Match Scan"}
+                                        </button>
+                                    ) : (
+                                        <div style={styles.atsResultGrid}>
+                                            <div style={styles.atsScoreCircleSection}>
+                                                <div style={{
+                                                    ...styles.atsScoreCircle,
+                                                    borderColor: getScoreColor(atsResult.score),
+                                                    color: getScoreColor(atsResult.score)
+                                                }}>
+                                                    <span style={styles.atsScoreVal}>{atsResult.score}%</span>
+                                                    <span style={styles.atsScoreLabel}>Match</span>
+                                                </div>
+                                            </div>
+                                            <div style={styles.atsFeedbackSection}>
+                                                {atsResult.missingSkills && atsResult.missingSkills.length > 0 && (
+                                                    <div style={{ marginBottom: "12px" }}>
+                                                        <strong style={{ color: "#ef4444", fontSize: "14px", display: "block", marginBottom: "4px" }}>
+                                                            ❌ Missing Skills / Keywords:
+                                                        </strong>
+                                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                                            {atsResult.missingSkills.map(skill => (
+                                                                <span key={skill} style={styles.atsSkillBadge}>{skill}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {atsResult.suggestions && atsResult.suggestions.length > 0 && (
+                                                    <div style={{ marginBottom: "12px" }}>
+                                                        <strong style={{ color: "var(--text-h)", fontSize: "14px", display: "block", marginBottom: "4px" }}>
+                                                            💡 Recruiter Suggestions:
+                                                        </strong>
+                                                        <ul style={styles.atsList}>
+                                                            {atsResult.suggestions.map((sug, i) => (
+                                                                <li key={i} style={styles.atsListItem}>{sug}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+
+                                                {atsResult.tailoredSummary && (
+                                                    <div>
+                                                        <strong style={{ color: "var(--text-h)", fontSize: "14px", display: "block", marginBottom: "4px" }}>
+                                                            📝 AI Tailored Profile Summary:
+                                                        </strong>
+                                                        <p style={styles.atsSummaryText}>{atsResult.tailoredSummary}</p>
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    onClick={() => setAtsResult(null)}
+                                                    style={{ ...styles.editBtn, marginTop: "12px", fontSize: "12px", padding: "4px 8px" }}
+                                                >
+                                                    Clear Scan
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {analysisError && (
+                                        <div style={{ ...styles.error, marginTop: "10px" }}>{analysisError}</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div style={styles.detailDivider} />
@@ -546,5 +724,114 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontSize: "13px",
         color: "var(--text)",
         cursor: "pointer",
+    },
+    resumeLink: {
+        color: "var(--accent)",
+        textDecoration: "none",
+        fontSize: "13px",
+        fontWeight: 600,
+        border: "1px solid var(--accent-border)",
+        padding: "2px 8px",
+        borderRadius: "4px",
+        background: "var(--accent-bg)",
+        cursor: "pointer",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+    },
+    atsContainer: {
+        marginTop: "8px",
+        background: "var(--code-bg)",
+        border: "1px solid var(--border)",
+        borderRadius: "6px",
+        padding: "16px",
+    },
+    atsWarning: {
+        fontSize: "14px",
+        color: "var(--text)",
+        fontStyle: "italic",
+    },
+    atsAnalyzeBtn: {
+        background: "var(--accent)",
+        color: "#fff",
+        border: "none",
+        padding: "8px 16px",
+        borderRadius: "4px",
+        fontWeight: "bold",
+        fontSize: "14px",
+        cursor: "pointer",
+        display: "block",
+        width: "100%",
+        textAlign: "center",
+    },
+    atsResultGrid: {
+        display: "flex",
+        gap: "20px",
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+    },
+    atsScoreCircleSection: {
+        flex: "0 0 100px",
+        display: "flex",
+        justifyContent: "center",
+    },
+    atsScoreCircle: {
+        width: "80px",
+        height: "80px",
+        borderRadius: "50%",
+        border: "4px solid #fff",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "var(--bg)",
+    },
+    atsScoreVal: {
+        fontSize: "20px",
+        fontWeight: "bold",
+        lineHeight: 1,
+    },
+    atsScoreLabel: {
+        fontSize: "10px",
+        textTransform: "uppercase",
+        fontWeight: "bold",
+        marginTop: "2px",
+    },
+    atsFeedbackSection: {
+        flex: 1,
+        minWidth: "200px",
+        textAlign: "left",
+    },
+    atsSkillBadge: {
+        background: "rgba(239, 68, 68, 0.1)",
+        color: "#ef4444",
+        border: "1px solid rgba(239, 68, 68, 0.2)",
+        padding: "2px 6px",
+        borderRadius: "4px",
+        fontSize: "12px",
+        fontWeight: 500,
+        marginRight: "6px",
+        marginBottom: "6px",
+    },
+    atsList: {
+        margin: 0,
+        paddingLeft: "18px",
+        fontSize: "13px",
+        color: "var(--text)",
+        lineHeight: 1.4,
+    },
+    atsListItem: {
+        marginBottom: "4px",
+    },
+    atsSummaryText: {
+        margin: 0,
+        fontSize: "13px",
+        color: "var(--text)",
+        background: "var(--bg)",
+        padding: "8px 12px",
+        borderRadius: "4px",
+        border: "1px solid var(--border)",
+        fontStyle: "italic",
+        lineHeight: 1.4,
     },
 };

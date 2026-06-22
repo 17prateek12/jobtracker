@@ -8,6 +8,7 @@ import OutreachCard from "./OutreachCard";
 interface OutreachSectionProps {
     outreaches: Outreach[];
     enums: BackendEnums;
+    opportunity: any;
     onUpdateOutreachStatus: (id: string, status: string) => void;
     onDeleteOutreach: (id: string) => void;
     onCreateOutreach: (payload: any) => void;
@@ -16,6 +17,7 @@ interface OutreachSectionProps {
 export default function OutreachSection({
     outreaches,
     enums,
+    opportunity,
     onUpdateOutreachStatus,
     onDeleteOutreach,
     onCreateOutreach,
@@ -63,6 +65,7 @@ export default function OutreachSection({
             >
                 <OutreachForm 
                     enums={enums}
+                    opportunity={opportunity}
                     onSubmit={handleFormSubmit}
                     onCancel={() => setIsAddModalOpen(false)}
                 />

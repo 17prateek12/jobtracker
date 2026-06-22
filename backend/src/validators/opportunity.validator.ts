@@ -12,6 +12,7 @@ export const createOpportunitySchema = z.object({
     notes: z.string().optional(),
     requiredSkills: z.array(z.enum(RequiredSkills)).optional(),
     appliedAt: z.coerce.date().optional(),
+    resumeId: z.string().optional(),
 });
 
 export const updateOpportunitySchema = createOpportunitySchema.omit({ companyId: true, }).partial();

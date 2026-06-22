@@ -77,6 +77,16 @@ const outreachSchema = new Schema(
             default: 0,
             min: 0,
         },
+
+        notified3Day: {
+            type: Boolean,
+            default: false,
+        },
+
+        notified7Day: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,

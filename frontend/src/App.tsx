@@ -10,6 +10,10 @@ import CompanyDetail from "./pages/CompanyDetail";
 import OpportunityDetail from "./pages/OpportunityDetail";
 import Dashboard from "./pages/Dashboard";
 import Opportunities from "./pages/Opportunities";
+import Templates from "./pages/Templates";
+import Resumes from "./pages/Resumes";
+import ResumeBuilder from "./pages/ResumeBuilder";
+import Interviews from "./pages/Interviews";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -101,6 +105,61 @@ export default function App() {
                         <ProtectedRoute>
                             <Layout>
                                 <OpportunityDetail />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/templates"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Templates />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/resumes"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Resumes />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/resumes/builder"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <ResumeBuilder />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/resumes/builder/:id"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <ResumeBuilder />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/interviews"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Interviews />
                             </Layout>
                         </ProtectedRoute>
                     }
