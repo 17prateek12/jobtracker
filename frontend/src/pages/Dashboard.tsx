@@ -56,6 +56,35 @@ export default function Dashboard() {
         (i) => new Date(i.scheduledAt) <= fortyEightHoursFromNow
     );
 
+    // Outreaches follow-up reminders (> 3 days since last interaction)
+    const pendingFollowups = outreaches
+        .filter((out: any) => {
+            if (out.status !== "SENT" && out.status !== "FOLLOWUP") return false;
+            const baseDate = out.lastInteractionAt || out.sentAt || out.createdAt;
+            if (!baseDate) return false;
+            const elapsed = now.getTime() - new Date(baseDate).getTime();
+            const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+            return days >= 3;
+        })
+        .map((out: any) => {
+            const opp = opportunities.find((o) => o._id === out.opportunityId);
+            const companyName = opp && typeof opp.companyId === "object" ? opp.companyId.name : "Company";
+            const role = opp ? opp.jobRole : "Position";
+            
+            const baseDate = out.lastInteractionAt || out.sentAt || out.createdAt;
+            const elapsed = now.getTime() - new Date(baseDate).getTime();
+            const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+            return {
+                _id: out._id,
+                title: `Follow up with ${out.contactName || "Contact"}`,
+                company: companyName,
+                role: role,
+                days,
+                opportunityId: out.opportunityId
+            };
+        });
+
     // --- SVG Line Chart Data: Applications Timeline (Last 6 Months) ---
     const getTimelineData = () => {
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -503,12 +532,12 @@ export default function Dashboard() {
                             <h3 style={styles.chartTitle}>Urgent Action Checklist</h3>
                             <p style={styles.chartSubtitle}>Upcoming rounds or followups in next 48 hrs</p>
                             <div style={{ marginTop: "16px", minHeight: "150px" }}>
-                                {urgentInterviews.length === 0 ? (
+                                {urgentInterviews.length === 0 && pendingFollowups.length === 0 ? (
                                     <div style={styles.emptyActionBlock}>
                                         <div style={{ fontSize: "28px", marginBottom: "8px" }}>🚀</div>
-                                        <div style={{ fontWeight: 500, color: "var(--text-h)" }}>All Quiet on the Interview Front</div>
+                                        <div style={{ fontWeight: 500, color: "var(--text-h)" }}>All Quiet on the Career Front</div>
                                         <div style={{ fontSize: "13px", color: "var(--text)", marginTop: "4px", maxWidth: "250px", textAlign: "center" }}>
-                                            No interviews scheduled in the next 48 hours. Polish your resume templates to apply for more roles!
+                                            No interviews scheduled in the next 48 hours and no pending follow-ups. Polish your resume templates to apply for more roles!
                                         </div>
                                         <button
                                             className="btn btn-secondary"
@@ -520,6 +549,7 @@ export default function Dashboard() {
                                     </div>
                                 ) : (
                                     <div style={styles.actionList}>
+                                        {/* Interviews */}
                                         {urgentInterviews.map((item) => {
                                             const dateObj = new Date(item.scheduledAt);
                                             const diffHrs = Math.round((dateObj.getTime() - now.getTime()) / (1000 * 60 * 60));
@@ -528,7 +558,7 @@ export default function Dashboard() {
                                                 <div key={item._id} style={styles.actionItem}>
                                                     <div style={styles.actionLeft}>
                                                         <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-h)" }}>
-                                                            {item.title}
+                                                            🎤 {item.title}
                                                         </div>
                                                         <div style={{ fontSize: "12px", color: "var(--text)" }}>
                                                             🏢 {companyName} — {item.durationMinutes} mins
@@ -544,6 +574,39 @@ export default function Dashboard() {
                                                             style={{ padding: "4px 8px", fontSize: "12px", borderRadius: "4px" }}
                                                         >
                                                             Prepare
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Pending Followups */}
+                                        {pendingFollowups.map((item: any) => {
+                                            const roleLabel = item.role
+                                                .split("_")
+                                                .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                                                .join(" ");
+
+                                            return (
+                                                <div key={item._id} style={styles.actionItem}>
+                                                    <div style={styles.actionLeft}>
+                                                        <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-h)" }}>
+                                                            ✉️ {item.title}
+                                                        </div>
+                                                        <div style={{ fontSize: "12px", color: "var(--text)" }}>
+                                                            🏢 {item.company} — {roleLabel}
+                                                        </div>
+                                                    </div>
+                                                    <div style={styles.actionRight}>
+                                                        <div style={{ ...styles.countdownBadge, color: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.1)" }}>
+                                                            {item.days} days ago
+                                                        </div>
+                                                        <button
+                                                            className="btn btn-primary"
+                                                            onClick={() => navigate(`/opportunities/${item.opportunityId}`)}
+                                                            style={{ padding: "4px 8px", fontSize: "12px", borderRadius: "4px" }}
+                                                        >
+                                                            Follow Up
                                                         </button>
                                                     </div>
                                                 </div>
