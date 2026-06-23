@@ -348,3 +348,45 @@ export const improveText = async (text: string, context?: string) => {
         return getMockImprovedText(text);
     }
 };
+
+export const generateOrRewriteTemplate = async (instruction: string, templateContent?: string) => {
+    const { projectId, model } = getVertexClientConfig();
+    if (!projectId) {
+        return getMockTemplateResponse(instruction, templateContent);
+    }
+
+    try {
+        const prompt = templateContent
+            ? `You are an expert copywriter. Rewrite the following outreach template content according to these instructions:
+               Instructions: "${instruction}"
+               
+               Original Template Content:
+               "${templateContent}"
+               
+               Return ONLY the rewritten template content. Do not add subject lines (unless specifically asked), greetings, explanations, or markdown code blocks.`
+            : `You are an expert copywriter. Write a new professional job outreach template according to these instructions:
+               Instructions: "${instruction}"
+               
+               Use placeholders like {{company}}, {{role}}, {{name}}, {{jobUrl}}, and {{yourName}} where appropriate.
+               Return ONLY the template content. Do not add subject lines, explanations, or markdown wrappers.`;
+
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt
+        });
+
+        const responseText = response.text;
+        return responseText ? responseText.trim() : (templateContent || "");
+    } catch (err: any) {
+        console.error("Template generation/rewrite failed, falling back to mock:", err.message);
+        return getMockTemplateResponse(instruction, templateContent);
+    }
+};
+
+const getMockTemplateResponse = (instruction: string, templateContent?: string): string => {
+    if (templateContent) {
+        return `Dear {{name}},\n\nI hope this finds you well. I am reaching out to express my interest in the {{role}} position at {{company}}.\n\n[Polished version based on: ${instruction}]\n\nOriginal draft: ${templateContent}\n\nBest,\n{{yourName}}`;
+    }
+    return `Dear {{name}},\n\nI hope you are doing well. I recently saw the opening for the {{role}} position at {{company}} ({{jobUrl}}) and would love to connect. Based on my background, I believe I can make a strong contribution.\n\n[Created from instructions: ${instruction}]\n\nBest regards,\n{{yourName}}`;
+};

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from "../api/template";
 import type { ITemplate } from "../api/template";
+import { generateOrRewriteTemplate } from "../api/ai";
 import Modal from "../components/Modal";
 
 export default function Templates() {
@@ -18,6 +19,11 @@ export default function Templates() {
     const [subject, setSubject] = useState("");
     const [content, setContent] = useState("");
     const [formError, setFormError] = useState("");
+
+    // AI template generator states
+    const [aiInstruction, setAiInstruction] = useState("");
+    const [isAiProcessing, setIsAiProcessing] = useState(false);
+    const [aiError, setAiError] = useState("");
 
     // Load templates list
     const { data: templates = [], isLoading } = useQuery({
@@ -67,6 +73,29 @@ export default function Templates() {
         setContent("");
         setFormError("");
         setSelectedTemplate(null);
+        setAiInstruction("");
+        setAiError("");
+    };
+
+    const handleAiProcess = async () => {
+        if (!aiInstruction.trim()) {
+            setAiError("Please enter some instructions first.");
+            return;
+        }
+        setAiError("");
+        setIsAiProcessing(true);
+        try {
+            const result = await generateOrRewriteTemplate(
+                aiInstruction.trim(),
+                content.trim() || undefined
+            );
+            setContent(result);
+            setAiInstruction("");
+        } catch (err: any) {
+            setAiError(err?.response?.data?.message || "AI failed to process the request.");
+        } finally {
+            setIsAiProcessing(false);
+        }
     };
 
     const handleCreateTemplate = (e: React.FormEvent) => {
@@ -215,6 +244,31 @@ export default function Templates() {
                             />
                         </div>
                     )}
+                    <div className="form-group" style={{ border: "1px solid var(--accent-border)", padding: "12px", borderRadius: "8px", background: "var(--accent-bg)", marginBottom: "16px" }}>
+                        <label className="form-label" style={{ color: "var(--accent)", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span>✨ AI Assistant</span>
+                        </label>
+                        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder={content ? "e.g. Make it more formal, or rewrite as cold email" : "e.g. Cold outreach message to engineering manager at Google"}
+                                value={aiInstruction}
+                                onChange={e => setAiInstruction(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleAiProcess}
+                                disabled={isAiProcessing}
+                                style={{ whiteSpace: "nowrap", backgroundColor: "var(--accent)" }}
+                            >
+                                {isAiProcessing ? "Working..." : content ? "AI Rewrite" : "AI Write"}
+                            </button>
+                        </div>
+                        {aiError && <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{aiError}</div>}
+                    </div>
+
                     <div className="form-group">
                         <label className="form-label">Content *</label>
                         <textarea
@@ -277,6 +331,31 @@ export default function Templates() {
                             />
                         </div>
                     )}
+                    <div className="form-group" style={{ border: "1px solid var(--accent-border)", padding: "12px", borderRadius: "8px", background: "var(--accent-bg)", marginBottom: "16px" }}>
+                        <label className="form-label" style={{ color: "var(--accent)", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span>✨ AI Assistant</span>
+                        </label>
+                        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder={content ? "e.g. Make it more formal, or rewrite as cold email" : "e.g. Cold outreach message to engineering manager at Google"}
+                                value={aiInstruction}
+                                onChange={e => setAiInstruction(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleAiProcess}
+                                disabled={isAiProcessing}
+                                style={{ whiteSpace: "nowrap", backgroundColor: "var(--accent)" }}
+                            >
+                                {isAiProcessing ? "Working..." : content ? "AI Rewrite" : "AI Write"}
+                            </button>
+                        </div>
+                        {aiError && <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{aiError}</div>}
+                    </div>
+
                     <div className="form-group">
                         <label className="form-label">Content *</label>
                         <textarea

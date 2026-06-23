@@ -4,7 +4,7 @@ import { APIResponse } from "../utils/ApiResponse";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { ApiError } from "../utils/ApiError";
 import { getResumeByIdService } from "../services/resume.service";
-import { analyzeResumeAts, tailorOutreachMessage, improveText } from "../services/ai.service";
+import { analyzeResumeAts, tailorOutreachMessage, improveText, generateOrRewriteTemplate } from "../services/ai.service";
 
 // 1. Analyze built resume against job description for ATS match
 export const analyzeResumeController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -88,5 +88,24 @@ export const improveTextController = asyncHandler(async (req: Request, res: Resp
 
     res.status(HTTP_STATUS.OK).json(
         new APIResponse("Text improved successfully", { improved })
+    );
+});
+
+export const generateOrRewriteTemplateController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const { instruction, templateContent } = req.body;
+
+    if (!userId) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "Unauthorized");
+    }
+
+    if (!instruction || !instruction.trim()) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Instruction is required");
+    }
+
+    const content = await generateOrRewriteTemplate(instruction.trim(), templateContent);
+
+    res.status(HTTP_STATUS.OK).json(
+        new APIResponse("Template processed successfully", { content })
     );
 });

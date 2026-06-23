@@ -1,424 +1,139 @@
-console.log(
-  "CONTENT SCRIPT LOADED"
-);
+// content/selector.js
 
-// Automatically sync session token from Dashboard to Extension
+// Helper to safely verify if the extension context is still active/valid
+function isContextValid() {
+  try {
+    return !!(typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id);
+  } catch (e) {
+    return false;
+  }
+}
+
+// ─── Token Sync ───────────────────────────────────────────────────
+
+let lastSync = 0;
+
 function syncDashboardToken() {
-  const isDashboardApp = 
+  // If the extension context is invalidated, remove listeners and exit
+  if (!isContextValid()) {
+    window.removeEventListener("focus", syncDashboardToken);
+    window.removeEventListener("click", syncDashboardToken);
+    return;
+  }
+
+  const now = Date.now();
+  if (now - lastSync < 5000) return;
+  lastSync = now;
+
+  const isDashboardApp =
     window.location.origin === "http://localhost:5173" ||
     document.title.includes("Job CRM") ||
-    document.querySelector('meta[name="application-name"]')?.getAttribute('content') === 'Job Tracker';
+    document.querySelector('meta[name="application-name"]')
+      ?.getAttribute("content") === "Job Tracker";
 
-  if (isDashboardApp) {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+  if (!isDashboardApp) return;
 
+  const token = localStorage.getItem("token");
+  const userStr = localStorage.getItem("user");
+
+  try {
     chrome.storage.local.get(["token", "user"], (stored) => {
+      if (!isContextValid()) return;
       if (token) {
-        if (stored.token !== token) {
+        if (stored && stored.token !== token) {
           let userObj = null;
           try {
             if (userStr) userObj = JSON.parse(userStr);
           } catch (e) {
-            console.error("[Job Tracker] Failed to parse user details:", e);
+            console.error("[Job Tracker] Failed to parse user:", e);
           }
-          chrome.storage.local.set({ token, user: userObj }, () => {
-            console.log("[Job Tracker] Session token synced from dashboard.");
-          });
+          chrome.storage.local.set({ token, user: userObj });
         }
-      } else {
-        // Dashboard logged out - clear storage if extension was connected
-        if (stored.token) {
-          chrome.storage.local.remove(["token", "user"], () => {
-            console.log("[Job Tracker] Cleared extension session since dashboard logged out.");
-          });
-        }
+      } else if (stored && stored.token) {
+        chrome.storage.local.remove(["token", "user"]);
       }
     });
+  } catch (e) {
+    console.warn("[Job Tracker] Token sync failed due to invalidated context:", e.message);
   }
 }
 
-// Run immediately and subscribe to focus/click updates
 syncDashboardToken();
 window.addEventListener("focus", syncDashboardToken);
 window.addEventListener("click", syncDashboardToken);
 
+// ─── Selection Mode ───────────────────────────────────────────────
 
 let activeField = null;
 
+async function handleMouseUp() {
+  if (!isContextValid()) {
+    document.removeEventListener("mouseup", handleMouseUp);
+    return;
+  }
+
+  const selectedText = window.getSelection().toString().trim();
+  if (!selectedText) return;
+
+  try {
+    await chrome.storage.local.set({ [activeField]: selectedText });
+    showToast(`✓ ${activeField} captured`);
+  } catch (e) {
+    console.warn("[Job Tracker] Failed to save selection, context invalidated:", e.message);
+  }
+  stopSelectionMode();
+}
+
 function stopSelectionMode() {
-
-  document.removeEventListener(
-    "mouseup",
-    handleMouseUp
-  );
-
+  document.removeEventListener("mouseup", handleMouseUp);
   activeField = null;
 }
 
-async function handleMouseUp() {
+// ─── Message Listener ─────────────────────────────────────────────
 
-  const selectedText =
-    window
-      .getSelection()
-      .toString()
-      .trim();
-
-  console.log(
-    "Selected Text:",
-    selectedText
-  );
-
-  console.log(
-    "Active Field:",
-    activeField
-  );
-
-  if (!selectedText) {
-    return;
+try {
+  if (isContextValid()) {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (!isContextValid()) return;
+      if (message.type === "START_SELECTION") {
+        activeField = message.field;
+        showToast(`Select "${activeField}" text on the page`);
+        document.addEventListener("mouseup", handleMouseUp);
+      }
+    });
   }
-
-  await chrome.storage.local.set({
-    [activeField]:
-      selectedText,
-  });
-
-  console.log(
-    "Saved To Storage"
-  );
-
-  alert(
-    `${activeField} saved:\n${selectedText}`
-  );
-
-  stopSelectionMode();
+} catch (e) {
+  console.warn("[Job Tracker] Failed to attach message listener:", e.message);
 }
 
-async function handleMouseUp() {
+// ─── Toast ────────────────────────────────────────────────────────
 
-  const selectedText =
-    window
-      .getSelection()
-      .toString()
-      .trim();
+function showToast(message) {
+  const existing = document.getElementById("jt-toast");
+  if (existing) existing.remove();
 
-  console.log(
-    "Selected Text:",
-    selectedText
-  );
+  const toast = document.createElement("div");
+  toast.id = "jt-toast";
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: sans-serif;
+    z-index: 2147483647;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+  `;
 
-  console.log(
-    "Active Field:",
-    activeField
-  );
-
-  if (!selectedText) {
-    return;
-  }
-
-  await chrome.storage.local.set({
-    [activeField]:
-      selectedText,
-  });
-
-  const data =
-    await chrome.storage.local.get(null);
-
-  console.log(
-    "AFTER SAVE:",
-    data
-  );
-
-  alert(
-    `${activeField} saved:\n${selectedText}`
-  );
-
-  stopSelectionMode();
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
 }
-
-chrome.runtime.onMessage.addListener(
-  (message) => {
-
-    console.log(
-      "Message Received",
-      message
-    );
-
-    if (
-      message.type ===
-      "START_SELECTION"
-    ) {
-
-      activeField =
-        message.field;
-
-      console.log(
-        "Selection Started",
-        activeField
-      );
-
-      alert(
-        `Select ${activeField} text and release mouse`
-      );
-
-      document.addEventListener(
-        "mouseup",
-        handleMouseUp
-      );
-    }
-  }
-);
-
-
-// let activeField = null;
-
-// function stopSelectionMode() {
-
-//     document.removeEventListener(
-//         "mouseup",
-//         handleMouseUp
-//     );
-
-//     activeField = null;
-// }
-
-// async function handleMouseUp() {
-
-//     const selectedText =
-//         window
-//             .getSelection()
-//             .toString()
-//             .trim();
-
-//     if (!selectedText) {
-//         return;
-//     }
-
-//     await chrome.storage.local.set({
-//         [activeField]:
-//             selectedText,
-//     });
-
-//     alert(
-//         `${activeField} saved:\n${selectedText}`
-//     );
-
-//     stopSelectionMode();
-// }
-
-// chrome.runtime.onMessage.addListener(
-//     (message) => {
-
-//         if (
-//             message.type ===
-//             "START_SELECTION"
-//         ) {
-
-//             activeField =
-//                 message.field;
-
-//             alert(
-//                 `Select ${activeField} text and release mouse`
-//             );
-
-//             document.addEventListener(
-//                 "mouseup",
-//                 handleMouseUp
-//             );
-//         }
-//     }
-// );
-
-// console.log("CONTENT SCRIPT LOADED");
-// alert("CONTENT SCRIPT LOADED");
-
-// let activeField = null;
-
-// function handleMouseUp() {
-//     const selectedText = window
-//         .getSelection()
-//         .toString()
-//         .trim();
-
-//     if (!selectedText) {
-//         return;
-//     }
-
-//     chrome.runtime.sendMessage({
-//         type: "FIELD_SELECTED",
-//         field: activeField,
-//         value: selectedText,
-//     });
-
-//     alert(
-//         `${activeField} selected:\n${selectedText}`
-//     );
-
-//     stopSelectionMode();
-// }
-
-// function stopSelectionMode() {
-//     document.removeEventListener(
-//         "mouseup",
-//         handleMouseUp
-//     );
-
-//     activeField = null;
-// }
-
-// chrome.runtime.onMessage.addListener(
-//     (message) => {
-
-//         if (
-//             message.type ===
-//             "START_SELECTION"
-//         ) {
-
-//             activeField =
-//                 message.field;
-
-//             alert(
-//                 `Select ${activeField} text and release mouse`
-//             );
-
-//             document.addEventListener(
-//                 "mouseup",
-//                 handleMouseUp
-//             );
-//         }
-//     }
-// );
-
-// let activeField = null;
-
-// let hoveredElement = null;
-
-// function removeSelectionMode() {
-
-//     document.removeEventListener(
-//         "mouseover",
-//         handleMouseOver
-//     );
-
-//     document.removeEventListener(
-//         "mouseout",
-//         handleMouseOut
-//     );
-
-//     document.removeEventListener(
-//         "click",
-//         handleClick,
-//         true
-//     );
-
-//     activeField = null;
-// }
-
-// function handleMouseOver(event) {
-
-//     hoveredElement =
-//         event.target;
-
-//     hoveredElement.style.outline =
-//         "2px solid red";
-// }
-
-// function handleMouseOut(event) {
-
-//     event.target.style.outline =
-//         "";
-// }
-
-// function handleClick(event) {
-
-//     event.preventDefault();
-
-//     event.stopPropagation();
-
-//     const selectedText =
-//         event.target.innerText?.trim();
-
-//     if (!selectedText) {
-//         return;
-//     }
-
-//     chrome.runtime.sendMessage({
-//         type: "FIELD_SELECTED",
-//         field: activeField,
-//         value: selectedText,
-//     });
-
-//     event.target.style.outline =
-//         "";
-
-//     removeSelectionMode();
-// }
-
-// chrome.runtime.onMessage.addListener(
-//     (message) => {
-
-//         console.log(
-//             "Message Received",
-//             message
-//         );
-
-//         if (
-//             message.type ===
-//             "START_SELECTION"
-//         ) {
-
-//             console.log(
-//                 "Selection Started"
-//             );
-
-//             activeField =
-//                 message.field;
-
-//             document.addEventListener(
-//                 "mouseover",
-//                 handleMouseOver
-//             );
-
-//             document.addEventListener(
-//                 "mouseout",
-//                 handleMouseOut
-//             );
-
-//             document.addEventListener(
-//                 "click",
-//                 handleClick,
-//                 true
-//             );
-//         }
-//     }
-// );
-
-// // chrome.runtime.onMessage.addListener(
-// //     (message) => {
-
-// //         if (
-// //             message.type ===
-// //             "START_SELECTION"
-// //         ) {
-
-// //             activeField =
-// //                 message.field;
-
-// //             document.addEventListener(
-// //                 "mouseover",
-// //                 handleMouseOver
-// //             );
-
-// //             document.addEventListener(
-// //                 "mouseout",
-// //                 handleMouseOut
-// //             );
-
-// //             document.addEventListener(
-// //                 "click",
-// //                 handleClick,
-// //                 true
-// //             );
-// //         }
-// //     }
-// // );

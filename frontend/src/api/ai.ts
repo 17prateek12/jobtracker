@@ -39,3 +39,14 @@ export const improveText = async (text: string, context?: string): Promise<strin
     });
     return response.data.data.improved;
 };
+
+export const generateOrRewriteTemplate = async (
+    instruction: string,
+    templateContent?: string
+): Promise<string> => {
+    const response = await api.post("/api/ai/template", {
+        instruction,
+        templateContent,
+    });
+    return response.data.data.content;
+};
